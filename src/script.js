@@ -1,7 +1,11 @@
 import './style.css'
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import * as dat from 'dat.gui'
+
+
+const loader = new THREE.TextureLoader()
+const texture = loader.load('/texture.png')
+const displacement = loader.load('/DisplacementMap.png')
 
 // Debug
 const gui = new dat.GUI()
@@ -13,24 +17,39 @@ const canvas = document.querySelector('canvas.webgl')
 const scene = new THREE.Scene()
 
 // Objects
-const geometry = new THREE.TorusGeometry( .7, .2, 16, 100 );
+const geometry = new THREE.PlaneBufferGeometry(5, 5, 256, 256)
 
 // Materials
-
-const material = new THREE.MeshBasicMaterial()
-material.color = new THREE.Color(0xff0000)
+const materials = new THREE.MeshStandardMaterial({
+    color: 'gray',
+    map: texture,
+    displacementMap: displacement,
+    displacementScale: 2
+})
 
 // Mesh
-const sphere = new THREE.Mesh(geometry,material)
-scene.add(sphere)
+const plane = new THREE.Mesh(geometry, materials)
+scene.add(plane)
+plane.rotation.x = 6
+// plane.rotation.z = 43
+gui.add(plane.rotation, 'x')
 
 // Lights
 
-const pointLight = new THREE.PointLight(0xffffff, 0.1)
-pointLight.position.x = 2
-pointLight.position.y = 3
-pointLight.position.z = 4
+const pointLight = new THREE.PointLight('#5244ea', 7)
+pointLight.position.x = 4.4
+pointLight.position.y = 30
+pointLight.position.z = 1
 scene.add(pointLight)
+
+gui.add(pointLight.position, 'x')
+gui.add(pointLight.position, 'y')
+gui.add(pointLight.position, 'z')
+
+const baseColor = {color: '#5244ea'}
+gui.addColor(baseColor, 'color').onChange(() => {
+    pointLight.color.set(baseColor.color)
+})
 
 /**
  * Sizes
@@ -40,8 +59,7 @@ const sizes = {
     height: window.innerHeight
 }
 
-window.addEventListener('resize', () =>
-{
+window.addEventListener('resize', () => {
     // Update sizes
     sizes.width = window.innerWidth
     sizes.height = window.innerHeight
@@ -59,11 +77,15 @@ window.addEventListener('resize', () =>
  * Camera
  */
 // Base camera
-const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
+const camera = new THREE.OrthographicCamera(-2, 2, 3, 0, 1, 50)
 camera.position.x = 0
 camera.position.y = 0
-camera.position.z = 2
+camera.position.z = 10
 scene.add(camera)
+
+gui.add(camera.rotation, 'x')
+gui.add(camera.rotation, 'y')
+gui.add(camera.rotation, 'z')
 
 // Controls
 // const controls = new OrbitControls(camera, canvas)
@@ -73,7 +95,8 @@ scene.add(camera)
  * Renderer
  */
 const renderer = new THREE.WebGLRenderer({
-    canvas: canvas
+    canvas: canvas,
+    alpha: true
 })
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -84,16 +107,17 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
 const clock = new THREE.Clock()
 
-const tick = () =>
-{
+const PERIOD = 8; // loop every 8 calls to updateNumber
+const SCALE = 255; // go between 0 and this
+
+const tick = () => {
 
     const elapsedTime = clock.getElapsedTime()
 
     // Update objects
-    sphere.rotation.y = .5 * elapsedTime
-
-    // Update Orbital Controls
-    // controls.update()
+    pointLight.position.y = Math.sin(elapsedTime) + 24
+    let value = (Math.sin(elapsedTime * 2 * Math.PI / PERIOD) * (SCALE / 2) + (SCALE / 2));
+    pointLight.color.setRGB(value / 255, value / 255, 234 / 255)
 
     // Render
     renderer.render(scene, camera)
